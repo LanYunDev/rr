@@ -68,7 +68,7 @@ DT="$(readConfigKey "platforms.${PLATFORM}.dt" "${WORK_PATH}/platforms.yml")"
 KVER="$(readConfigKey "platforms.${PLATFORM}.productvers.\"${PRODUCTVER}\".kver" "${WORK_PATH}/platforms.yml")"
 KPRE="$(readConfigKey "platforms.${PLATFORM}.productvers.\"${PRODUCTVER}\".kpre" "${WORK_PATH}/platforms.yml")"
 
-MEV="$(virt-what 2>/dev/null)"
+MEV="$(virt-what 2>/dev/null | head -1)"
 DMI="$(dmesg 2>/dev/null | grep -i "DMI:" | head -1 | sed 's/\[.*\] DMI: //i')"
 CPU="$(awk -F': ' '/model name/ {print $2}' /proc/cpuinfo | uniq)"
 MEM="$(awk '/MemTotal:/ {printf "%.0f", $2 / 1024}' /proc/meminfo) MB"
@@ -237,7 +237,7 @@ for KEY in "${!CMDLINE[@]}"; do
   [ -n "${VALUE}" ] && CMDLINE_LINE+="=${VALUE}"
 done
 CMDLINE_LINE=$(echo "${CMDLINE_LINE}" | sed 's/^ //') # Remove leading space
-printf "%s:\n \033[1;36m%s\033[0m\n" "$(TEXT "Cmdline")" "${CMDLINE_LINE}"
+printf "%s:\n\033[1;36m%s\033[0m\n" "$(TEXT "Cmdline")" "${CMDLINE_LINE}"
 
 # Check if user wants to modify at this stage
 function _bootwait() {
@@ -263,7 +263,7 @@ function _bootwait() {
 }
 
 DIRECT="$(readConfigKey "directboot" "${USER_CONFIG_FILE}")"
-if [ "${DIRECT}" = "true" ]; then
+if [ "${DIRECT}" = "true" ] || [ "${MEV:-physical}" = "parallels" ]; then
   grub-editenv ${USER_GRUBENVFILE} set rr_version="$([ -z "${RR_RELEASE}" ] && echo "${RR_TITLE}" || echo "${RR_TITLE}(${RR_RELEASE})")"
   grub-editenv ${USER_GRUBENVFILE} set dsm_model="${MODEL}(${PLATFORM})"
   grub-editenv ${USER_GRUBENVFILE} set dsm_version="${PRODUCTVER}(${BUILDNUM}$([ ${SMALLNUM:-0} -ne 0 ] && echo "u${SMALLNUM}"))"
@@ -385,7 +385,7 @@ else
   done
 
   # # Unload all network interfaces
-  # for D in $(readlink /sys/class/net/*/device/driver); do rmmod -f "$(basename ${D})" 2>/dev/null || true; done
+  # for D in $(realpath /sys/class/net/*/device/driver); do rmmod -f "$(basename ${D})" 2>/dev/null || true; done
 
   # Unload all graphics drivers
   # for D in $(lsmod | grep -E '^(nouveau|amdgpu|radeon|i915)' | awk '{print $1}'); do rmmod -f "${D}" 2>/dev/null || true; done
