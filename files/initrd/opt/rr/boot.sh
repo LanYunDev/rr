@@ -86,7 +86,7 @@ if ! readConfigMap "addons" "${USER_CONFIG_FILE}" | grep -q nvmesystem; then
   HASATA=0
   for D in $(lsblk -dpno NAME); do
     [ "${D}" = "${LOADER_DISK}" ] && continue
-    if echo "sata sas scsi" | grep -qw "$(getBus "${D}")"; then
+    if echo "sata sas scsi" | grep -wq "$(getBus "${D}")"; then
       HASATA=1
       break
     fi
@@ -104,6 +104,7 @@ SN="$(readConfigKey "sn" "${USER_CONFIG_FILE}")"
 MAC1="$(readConfigKey "mac1" "${USER_CONFIG_FILE}")"
 MAC2="$(readConfigKey "mac2" "${USER_CONFIG_FILE}")"
 KERNELPANIC="$(readConfigKey "kernelpanic" "${USER_CONFIG_FILE}")"
+USBASINTERNAL="$(readConfigKey "usbasinternal" "${USER_CONFIG_FILE}")"
 EMMCBOOT="$(readConfigKey "emmcboot" "${USER_CONFIG_FILE}")"
 MODBLACKLIST="$(readConfigKey "modblacklist" "${USER_CONFIG_FILE}")"
 
@@ -182,13 +183,17 @@ CMDLINE['pcie_aspm']="off"
 CMDLINE['modprobe.blacklist']="${MODBLACKLIST}"
 CMDLINE['mev']="${MEV:-physical}"
 
+if [ "${USBASINTERNAL}" = "true" ]; then
+  CMDLINE['usbasinternal']=""
+fi
+
 if echo "apollolake geminilake purley" | grep -wq "${PLATFORM}"; then
   CMDLINE["nox2apic"]=""
 fi
 
 # # Save command line to grubenv  RR_CMDLINE= ... nox2apic
 # if echo "apollolake geminilake purley" | grep -wq "${PLATFORM}"; then
-#   if grep -q "^flags.*x2apic.*" /proc/cpuinfo; then
+#   if grep -Eq "^flags.*x2apic.*" /proc/cpuinfo; then
 #     checkCmdline "rr_cmdline" "nox2apic" || addCmdline "rr_cmdline" "nox2apic"
 #   fi
 # else
@@ -327,6 +332,10 @@ else
     DRIVER=$(ls -ld /sys/class/net/${N}/device/driver 2>/dev/null | awk -F '/' '{print $NF}')
     printf "%s(%s): " "${N}" "${DRIVER}"
     while true; do
+      if [ ! "${N::3}" = "eth" ]; then
+        printf "\r%s(%s): %s\n" "${N}" "${DRIVER}" "$(TEXT "IGNORE (Does not support non-wired network card.)")"
+        break
+      fi
       if [ -z "$(cat /sys/class/net/${N}/carrier 2>/dev/null)" ]; then
         printf "\r%s(%s): %s\n" "${N}" "${DRIVER}" "$(TEXT "DOWN")"
         break

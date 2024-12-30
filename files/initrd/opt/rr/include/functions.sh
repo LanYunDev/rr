@@ -76,6 +76,13 @@ function randomhex() {
   printf "%02X" $((RANDOM % 255 + 1))
 }
 
+
+###############################################################################
+# Generate a random digit (0-9A-Z)
+function genRandomDigit() {
+  echo {0..9} | tr ' ' '\n' | sort -R | head -1
+}
+
 ###############################################################################
 # Generate a random letter
 function genRandomLetter() {
@@ -391,7 +398,7 @@ function checkBIOS_VT_d() {
 # 1 - mode
 function rebootTo() {
   local MODES="config recovery junior bios memtest"
-  if [ -z "${1}" ] || ! echo "${MODES}" | grep -qw "${1}"; then exit 1; fi
+  if [ -z "${1}" ] || ! echo "${MODES}" | grep -wq "${1}"; then exit 1; fi
   # echo "Rebooting to ${1} mode"
   GRUBPATH="$(dirname "$(find "${PART1_PATH}/" -name grub.cfg 2>/dev/null | head -1)")"
   [ -z "${GRUBPATH}" ] && exit 1
@@ -429,7 +436,6 @@ function connectwlanif() {
 
 ###############################################################################
 # Find and mount the DSM root filesystem
-# (based on pocopico's TCRP code)
 function findDSMRoot() {
   local DSMROOTS=""
   [ -z "${DSMROOTS}" ] && DSMROOTS="$(mdadm --detail --scan 2>/dev/null | grep -E "name=SynologyNAS:0|name=DiskStation:0|name=SynologyNVR:0|name=BeeStation:0" | awk '{print $2}' | uniq)"
