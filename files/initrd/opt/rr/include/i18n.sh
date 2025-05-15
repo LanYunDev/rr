@@ -8,7 +8,7 @@
 
 [ -z "${WORK_PATH}" ] || [ ! -d "${WORK_PATH}/include" ] && WORK_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/../" >/dev/null 2>&1 && pwd)"
 
-type gettext >/dev/null 2>&1 && alias TEXT='gettext "rr"' || alias TEXT='echo'
+type -p gettext && alias TEXT='gettext "rr"' || alias TEXT='echo'
 shopt -s expand_aliases
 
 [ -d "${WORK_PATH}/lang" ] && export TEXTDOMAINDIR="${WORK_PATH}/lang"
